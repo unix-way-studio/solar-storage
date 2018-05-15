@@ -5,9 +5,9 @@
 
 #define MaxS 10000
 
-#define MaxA 100
-#define MaxB 100
-#define MaxC 100
+#define MaxA 200
+#define MaxB 200
+#define MaxC 200
 
 FILE *in,*out,*fstat;
 
@@ -358,7 +358,8 @@ int main(int argc, char *argv[])
 	mIsol[NIsol].z1=tz*10; mIsol[NIsol].z2=tz2*10;
 	sscanf(argv[i+4],"%f",&tp);
 	mIsol[NIsol].TPV=tp;
-	NIsol++;printf("ni=%d  %f:%f %f:%f %f:%f  %f\n",NIsol, tx,tx2, ty,ty2, tz,tz2, tp);
+	NIsol++;
+	//printf("ni=%d  %f:%f %f:%f %f:%f  %f\n",NIsol, tx,tx2, ty,ty2, tz,tz2, tp);
 	i+=4;
 	continue;
     } // теплоизоляция
