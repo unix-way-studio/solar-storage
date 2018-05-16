@@ -296,7 +296,7 @@ int ReadConf(char *Name) {
 int main(int argc, char *argv[])
 {
  long i,j,d,n;
- double CollectorQ;
+ double CollectorQ,CQ;
  double Q1=0.0;
  double Q2=0.0;
  double Q3=0.0;
@@ -354,11 +354,13 @@ int main(int argc, char *argv[])
 
  init_mT();Qp=0.0;
 
- for(d=0;d<730;d++) { // two year
+ for(d=90;d<730;d++) { // two year
     CollectorQ=0;
     for(i=0;i<24;i++) { // hour
 	for(j=0;j<15;j++) eval();
-	CollectorQ+=eval_tube(d*24+i);
+	CQ=eval_tube(d*24+i);
+	CollectorQ+=CQ;
+	printf("%ld %ld %f\n",d,i,CQ);
     }
     eval_q();
     print_all(d,CollectorQ);

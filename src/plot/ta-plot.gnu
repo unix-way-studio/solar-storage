@@ -8,7 +8,7 @@ set xlabel "Time, day" font "Helvetica-Bold,28"
 set bars small
 #set xrange [100:300]
 #set yrange [0:]
-set xrange [0:]
+set xrange [90:]
 #set size 0.5,0.5
 #set terminal postscript enhanced "Courier" 20
 
@@ -25,32 +25,37 @@ set style line 5 lt 5 lw 3 pt 10 linecolor rgb "green"
 set style line 6 lt 6 lw 3 pt 11 linecolor rgb "green"
 set style line 7 lt 7 lw 3 pt 12 linecolor rgb "green"
 set style line 8 lt 8 lw 3 pt 13 linecolor rgb "green"
+set style line 9 lt 7 lw 3 pt 14 linecolor rgb "green"
+set style line 10 lt 10 lw 3 pt 15 linecolor rgb "green"
+set style line 11 lt 11 lw 3 pt 16 linecolor rgb "green"
+set style line 12 lt 12 lw 3 pt 17 linecolor rgb "green"
+set style line 13 lt 13 lw 3 pt 18 linecolor rgb "green"
+set style line 14 lt 14 lw 3 pt 19 linecolor rgb "green"
 
-set output "vta1-Q.svg"
+set output "vta2-Q.svg"
 set ylabel "Q, GJ (Q, kW/h /1000)" font "Helvetica-Bold,28"
-plot "vta1.csv" using ($1*0.174):2 with lines linestyle 1 ti "Q, GJ", \
- "vta1.csv" using ($1*0.174):($2*0.278) with lines linestyle 2 ti "Q, kWh/1000"
+plot "vta2.csv" using 1:2 with lines linestyle 1 ti "Q, GJ", \
+ "vta2.csv" using 1:($2*0.278) with lines linestyle 2 ti "Q, kWh/1000"
 
-set output "vta1-P.svg"
+set output "vta2-P.svg"
 set ylabel "Q, GJ (Q, kW/h /1000)" font "Helvetica-Bold,12"
 set ylabel "P, Watt" font "Helvetica-Bold,28"
-plot "vta1.csv" using ($1*0.174):3 with lines linestyle 1 ti "Q, Watt"
+plot "vta2.csv" using 1:3 with lines linestyle 1 ti "Q, Watt", \
+ "vta2.csv" using 1:4 with lines linestyle 2 ti "Collector, Watt"
 
-set output "vta1-T.svg"
+set output "vta2-T.svg"
 set ylabel "T, C" font "Helvetica-Bold,28"
-plot "vta1.csv" using ($1*0.174):4 with lines linestyle 1 ti "T1", \
- "vta1.csv" using ($1*0.174):5 with lines linestyle 2 ti "T2", \
- "vta1.csv" using ($1*0.174):6 with lines linestyle 3 ti "T3", \
- "vta1.csv" using ($1*0.174):7 with lines linestyle 3 ti "T4", \
- "vta1.csv" using ($1*0.174):8 with lines linestyle 3 ti "T5", \
- "vta1.csv" using ($1*0.174):9 with lines linestyle 3 ti "T6", \
- "vta1.csv" using ($1*0.174):10 with lines linestyle 3 ti "T7", \
- "vta1.csv" using ($1*0.174):11 with lines linestyle 3 ti "T8", \
- "vta1.csv" using ($1*0.174):12 with lines linestyle 3 ti "T9"
+plot "vta2.csv" using 1:5 with lines linestyle 1 ti "T1", \
+ "vta2.csv" using 1:6 with lines linestyle 2 ti "T2", \
+ "vta2.csv" using 1:7 with lines linestyle 3 ti "T3", \
+ "vta2.csv" using 1:8 with lines linestyle 3 ti "T4", \
+ "vta2.csv" using 1:9 with lines linestyle 3 ti "T5", \
+ "vta2.csv" using 1:10 with lines linestyle 3 ti "T6", \
+ "vta2.csv" using 1:11 with lines linestyle 3 ti "T7"
 
 
 set terminal canvas enhanced mousing rounded size 1500,500
-set output "vta1.html"
+set output "vta2.html"
 set xlabel "Time, day" font "Helvetica-Bold,12"
 
 set multiplot
@@ -60,28 +65,26 @@ set grid
 set origin 0.01,0.0
 set title "Q" 
 set ylabel "Q, GJ (Q, kW/h /1000)" font "Helvetica-Bold,12"
-plot "vta1.csv" using ($1*0.174):2 with lines linestyle 1 ti "Q, GJ", \
- "vta1.csv" using ($1*0.174):($2*0.278) with lines linestyle 2 ti "Q, kW/h /1000"
+plot "vta2.csv" using 1:2 with lines linestyle 1 ti "Q, GJ", \
+ "vta2.csv" using 1:($2*0.278) with lines linestyle 2 ti "Q, kW/h /1000"
 
 set origin 0.34,0.0
 set title "P" 
 set ylabel "P, Watt" font "Helvetica-Bold,12"
-plot "vta1.csv" using ($1*0.174):3 with lines linestyle 1 ti "Q, Watt"
+plot "vta2.csv" using 1:3 with lines linestyle 1 ti "Q, Watt", \
+ "vta2.csv" using 1:4 with lines linestyle 2 ti "Collector, Watt"
 
 set origin 0.67,0.0
 set title "T" 
 set ylabel "T, C" font "Helvetica-Bold,12"
-plot "vta1.csv" using ($1*0.174):4 with lines linestyle 1 ti "T1", \
- "vta1.csv" using ($1*0.174):5 with lines linestyle 2 ti "T2", \
- "vta1.csv" using ($1*0.174):6 with lines linestyle 3 ti "T3", \
- "vta1.csv" using ($1*0.174):7 with lines linestyle 3 ti "T4", \
- "vta1.csv" using ($1*0.174):8 with lines linestyle 3 ti "T5", \
- "vta1.csv" using ($1*0.174):9 with lines linestyle 3 ti "T6", \
- "vta1.csv" using ($1*0.174):10 with lines linestyle 3 ti "T7", \
- "vta1.csv" using ($1*0.174):11 with lines linestyle 3 ti "T8", \
- "vta1.csv" using ($1*0.174):12 with lines linestyle 3 ti "T9"
+plot "vta2.csv" using 1:5 with lines linestyle 1 ti "T1", \
+ "vta2.csv" using 1:6 with lines linestyle 2 ti "T2", \
+ "vta2.csv" using 1:7 with lines linestyle 3 ti "T3", \
+ "vta2.csv" using 1:8 with lines linestyle 3 ti "T4", \
+ "vta2.csv" using 1:9 with lines linestyle 3 ti "T5", \
+ "vta2.csv" using 1:10 with lines linestyle 3 ti "T6", \
+ "vta2.csv" using 1:11 with lines linestyle 3 ti "T7"
 
 unset multiplot
-
 
 quit

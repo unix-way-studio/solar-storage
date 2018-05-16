@@ -1,6 +1,6 @@
 #!/bin/bash
 
-for si in {1..2100}
+for si in {90..890}
 do
  i=`printf "%05d" $si`
  if [ -f surf-$i.png ] ; then
@@ -30,6 +30,11 @@ rm surf-z2.csv
 rm surf-z3.csv
 rm surf.png
 
-ffmpeg -y -i "surf-%05d.png" surf.mpg
+cd ..
+gnuplot ta-plot.gnu
+tail -n 10 vta2.csv
+cd trace
+
+#ffmpeg -y -i "surf-%05d.png" surf.mpg
 #rm *.png
 

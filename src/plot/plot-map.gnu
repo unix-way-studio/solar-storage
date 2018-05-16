@@ -2,7 +2,8 @@
 set terminal pngcairo  transparent enhanced font "arial,10" fontscale 1.0 size 1800,1200
 
 unset key
-set view map scale 1
+#set view map scale 1
+set view map
 set style data lines
 set xtics border in scale 0,0 mirror norotate  autojustify
 set ytics border in scale 0,0 mirror norotate  autojustify
@@ -10,8 +11,8 @@ set ztics border in scale 0,0 nomirror norotate  autojustify
 unset cbtics
 set rtics axis in scale 0,0 nomirror norotate  autojustify
 set title "Heat Map" 
-set xrange [ -0.500000 : 100.50000 ] noreverse nowriteback
-set yrange [ -0.500000 : 100.50000 ] noreverse nowriteback
+set xrange [ -0.500000 : 200.50000 ] noreverse nowriteback
+set yrange [ -0.500000 : 200.50000 ] noreverse nowriteback
 set cbrange [ 0.00000 : 100.00000 ] noreverse nowriteback
 set palette rgbformulae 33,13,10
 
@@ -35,8 +36,8 @@ set origin 0.66,0.0
 set title "z=3" 
 splot "surf-z3.csv" matrix with image
 
-set xrange [ -0.500000 : 100.50000 ] noreverse nowriteback
-set yrange [ -0.500000 : 100.50000 ] noreverse nowriteback
+set xrange [ -0.500000 : 200.50000 ] noreverse nowriteback
+set yrange [ -0.500000 : 200.50000 ] noreverse nowriteback
 
 set origin 0.0,0.5
 set title "y=1" 
