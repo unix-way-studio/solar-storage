@@ -255,14 +255,18 @@ double eval_q() {
  return Qs;
 }
 
-void print_all(long i) {
+void print_all(long i, double CollectorQ) {
  long j;
 
  printf("%3ld \t%.3f ",i,Q/1.0e9);
  fprintf(out,"%3ld;\t %.3f; ",i,Q/1.0e9);
 
- printf("\t%.3f ",i,(Q-Qp)/15000.0);
- fprintf(out,"\t%.3f; ",i,(Q-Qp)/15000.0);
+ printf("\t%.3f ",(Q-Qp)/86400.0);
+ fprintf(out,"\t%.3f; ",(Q-Qp)/86400.0);
+
+ printf("\t%.3f ",CollectorQ/86400.0);
+ fprintf(out,"\t%.3f; ",CollectorQ/86400.0);
+
  Qp=Q;
 
  for(j=0; j<Nc; j++) print_p(mc[j].x, mc[j].y, mc[j].z);
@@ -292,6 +296,7 @@ int ReadConf(char *Name) {
 int main(int argc, char *argv[])
 {
  long i,j,d,n;
+ double CollectorQ;
  double Q1=0.0;
  double Q2=0.0;
  double Q3=0.0;
@@ -350,12 +355,13 @@ int main(int argc, char *argv[])
  init_mT();Qp=0.0;
 
  for(d=0;d<730;d++) { // two year
+    CollectorQ=0;
     for(i=0;i<24;i++) { // hour
 	for(j=0;j<15;j++) eval();
-	eval_tube(d*24+i);
+	CollectorQ+=eval_tube(d*24+i);
     }
     eval_q();
-    print_all(d);
+    print_all(d,CollectorQ);
   }
 
 // save_all("all-mt.csv");
