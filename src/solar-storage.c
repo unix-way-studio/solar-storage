@@ -24,6 +24,8 @@ double l=0.1, S=0.01, V0=0.001; // размер, площадь грани и о
 double dt=1.0; // шаг времени
 double dL=2.0; // расстояние между трубами
 
+double CollectorS=40; // площадь коллектора
+
 double Q; // запасено в системе тепла
 double Qp=0.0; // предидущее количество тепла
 
@@ -82,10 +84,10 @@ double SolarPower(double t) { return 3.6e6*(3.05+2.43*sin(2*pi*t/8766-pi/2))*(1+
 
 double TemperatureYear(double t) { return (-3.1+17.2*sin(2*pi*t/8766-pi/2))+(5+5*sin(2*pi*t/24-pi/2)); } // gradus C
 
-double CollectorPower(double t) {
+double CollectorPower(double t) { // J*m^-2*hour
     double R,Pl,P;
     R=SolarPower(t);
-    Pl=3600*3.1*(25-TemperatureYear(t));
+    Pl=3600*3.1*(20-TemperatureYear(t));
     P=0;
     if(Pl<R) P=R-Pl;
     return P;
@@ -148,7 +150,7 @@ int eval() {
  long x,y,z;
  double T,Q;
 // double k1=250.0*dt*S/l;
- double k1=250.0*dt*S/l;
+ double k1=240.0*dt*S/l;
 // double k2=RG*V0/CG;
  double k2=1/V0;
 
@@ -168,16 +170,23 @@ int eval() {
    for(z=1;z<MaxC-1;z++) {m[x][y][z]->T += m[x][y][z]->dT; /*if(x==50 && y==50 && z==50) printf("*** T=%f dT=%f\n", m[x][y][z]->T, m[x][y][z]->dT);*/}
 }
 
-int eval_t(double Tx) {
+double eval_tube(long t) {
  Cell *c;
  long x,y,z,i;
+ long SumT=0;
+ double dQ;
+ double k2=1/V0;
+
+ for(i=0;i<NTube;i++) SumT+=mTube[i].z;
+ dQ=CollectorS*CollectorPower(t)/SumT;
 
  for(i=0;i<NTube;i++) {
     x=mTube[i].x;y=mTube[i].y;
 //    for(y=MaxB;y>0;y--) m[x][y][z]->T = m[x][y-1][z]->T;
-    for(z=1;z<mTube[i].z;z++) m[x][y][z]->T = Tx;
+    for(z=1;z<mTube[i].z;z++) m[x][y][z]->T += dQ*k2/m[x][y][z]->Cp;
 //    m[x][0][z]->T = Tx; 
  }
+ return dQ*SumT;
 }
 
 void print_p(double a, double b, double c) {
@@ -229,7 +238,7 @@ void save_all(char *fname) {
  fclose(f);
 }
 
-double eval_Q() {
+double eval_q() {
  Cell *c;
  long x,y,z;
  double Qs;
@@ -282,7 +291,7 @@ int ReadConf(char *Name) {
 
 int main(int argc, char *argv[])
 {
- long i,j,n;
+ long i,j,d,n;
  double Q1=0.0;
  double Q2=0.0;
  double Q3=0.0;
@@ -328,6 +337,7 @@ int main(int argc, char *argv[])
     } // теплоизоляция
     if(strcmp(argv[i],"-tpi")==0) {TPI=atof(argv[i+1]);i++;continue;}
     if(strcmp(argv[i],"-tei")==0) {TEI=atof(argv[i+1]);i++;continue;}
+    if(strcmp(argv[i],"-CollectorS")==0) {CollectorS=atof(argv[i+1]);i++;continue;}
     if(strcmp(argv[i],"-i")==0) {in=fopen(argv[i+1],"r");i++;continue;}
     if(strcmp(argv[i],"-o")==0) {out=fopen(argv[i+1],"w");i++;continue;}
 //   if(strcmp(argv[i],"-l")==0) {log=fopen(argv[i+1],"w");i++;continue;}
@@ -339,35 +349,17 @@ int main(int argc, char *argv[])
 
  init_mT();Qp=0.0;
 
- // лето
- for(i=1;i<600;i++) {
-    for(j=0;j<60;j++) {eval();eval_t(TN);}
-    eval_Q();print_all(i);
+ for(d=0;d<730;d++) { // two year
+    for(i=0;i<24;i++) { // hour
+	for(j=0;j<15;j++) eval();
+	eval_tube(d*24+i);
+    }
+    eval_q();
+    print_all(d);
   }
- Q1=Q;
-
- // осень
- for(i=600;i<900;i++) {
-    for(j=0;j<60;j++) {eval();}
-    eval_Q();print_all(i);
-  }
- Q2=Q;
-
- // отопительный сезон
- for(i=900;i<1800;i++) {
-    for(j=0;j<60;j++) {eval();eval_t(10.0);}
-    eval_Q();print_all(i);
-  }
- Q3=Q;
-
- // весна
- for(i=1800;i<2100;i++) {
-    for(j=0;j<60;j++) {eval();}
-    eval_Q();print_all(i);
-  }
- Q4=Q;
 
 // save_all("all-mt.csv");
+/*
  fstat=fopen("vta2-stat.txt","w");
  fprintf(fstat,"Q1 = %.0f\n",Q1);
  fprintf(fstat,"Q2 = %.0f\n",Q2);
@@ -379,7 +371,7 @@ int main(int argc, char *argv[])
  fprintf(fstat,"Qsr2 = %.0f%%\n",100.0*(Q3-Q4)/Q1);
  fprintf(fstat,"Qost = %.0f%%\n",100.0*Q4/Q1);
  fclose(fstat);
-
+*/
  fclose(in);
  fclose(out);
 }
