@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 
+#define pi 3.1415
 #define MaxS 10000
 
 #define MaxA 200
@@ -28,9 +29,9 @@ double Qp=0.0; // предидущее количество тепла
 
 typedef struct
  {
-  double T0;  // начальная температура
-  double T;   // текущая температура
-  double dT;  // изменение температуры
+  double T0; // начальная температура
+  double T;  // текущая температура
+  double dT; // изменение температуры
   double Cp; // теплоемкость
   double TPV; // теплопроводность
   double *nb1; // ссылка на температуру соседней ячейки
@@ -77,6 +78,19 @@ Point mc[100];
 Isol mIsol[100];
 long NTube=0, Nc=0, NIsol=0;
 
+double SolarPower(double t) { return 3.6e6*(3.05+2.43*sin(2*pi*t/8766-pi/2))*(1+1*sin(2*pi*t/24-pi/2))/24; } // J*m^-2*hour
+
+double TemperatureYear(double t) { return (-3.1+17.2*sin(2*pi*t/8766-pi/2))+(5+5*sin(2*pi*t/24-pi/2)); } // gradus C
+
+double CollectorPower(double t) {
+    double R,Pl,P;
+    R=SolarPower(t);
+    Pl=3600*3.1*(25-TemperatureYear(t));
+    P=0;
+    if(Pl<R) P=R-Pl;
+    return P;
+}
+
 int init_mT() {
  int x,y,z,i;
  double TPV;
@@ -96,66 +110,6 @@ int init_mT() {
    }
 
 // теплоизоляция
-/*
- for(x=0;x<MaxA;x++)
-  for(y=0;y<MaxB;y++) {
-   m[x][y][0]->T0 =TV0;
-   m[x][y][0]->T =TV0;
-   m[x][y][0]->Cp = TEI;
-   m[x][y][0]->TPV = TPI;
-
-   m[x][y][1]->Cp = TEI;
-   m[x][y][1]->TPV = TPI;
-   m[x][y][2]->Cp = TEI;
-   m[x][y][2]->TPV = TPI;
-  }
-
- for(x=14;x<MaxA-14;x++)
-  for(y=14;y<MaxB-14;y++) {
-   z=75;
-   m[x][y][z]->Cp = TEI;
-   m[x][y][z]->TPV = TPI;
-   m[x][y][z+1]->Cp = TEI;
-   m[x][y][z+1]->TPV = TPI;
-  }
-
- x=15;
- for(z=1;z<MaxC-15;z++)
-  for(y=14;y<MaxB-14;y++) {
-   m[x][y][z]->Cp = TEI;
-   m[x][y][z]->TPV = TPI;
-   m[x+1][y][z]->Cp = TEI;
-   m[x+1][y][z]->TPV = TPI;
-  }
-
- x=85;
- for(z=1;z<MaxC-15;z++)
-  for(y=14;y<MaxB-14;y++) {
-   m[x][y][z]->Cp = TEI;
-   m[x][y][z]->TPV = TPI;
-   m[x-1][y][z]->Cp = TEI;
-   m[x-1][y][z]->TPV = TPI;
-  }
-
- y=15;
- for(z=1;z<MaxC-15;z++)
-  for(x=14;x<MaxA-14;x++) {
-   m[x][y][z]->Cp = TEI;
-   m[x][y][z]->TPV = TPI;
-   m[x][y+1][z]->Cp = TEI;
-   m[x][y+1][z]->TPV = TPI;
-  }
-
- y=85;
- for(z=1;z<MaxC-15;z++)
-  for(x=14;x<MaxA-14;x++) {
-   m[x][y][z]->Cp = TEI;
-   m[x][y][z]->TPV = TPI;
-   m[x][y-1][z]->Cp = TEI;
-   m[x][y-1][z]->TPV = TPI;
-  }
-*/
-// теплоизоляция
  for(i=0;i<NIsol;i++) {
     for( x=mIsol[i].x1; x<=mIsol[i].x2; x++)
      for( y=mIsol[i].y1; y<=mIsol[i].y2; y++)
@@ -163,10 +117,10 @@ int init_mT() {
  }
 
 // трубы
- for(i=0;i<NTube;i++) {
-    x=mTube[i].x;z=mTube[i].z;
-    for(y=0; y<MaxB; y++) { m[x][y][z]->TPV=TPV; m[x][y][z]->Cp=CG; m[x][y][z]->T=TG0; m[x][y][z]->T0=TG0; }
- }
+// for(i=0;i<NTube;i++) {
+//    x=mTube[i].x;z=mTube[i].z;
+//    for(y=0; y<MaxB; y++) { m[x][y][z]->TPV=TPV; m[x][y][z]->Cp=CG; m[x][y][z]->T=TG0; m[x][y][z]->T0=TG0; }
+// }
 
 // ссылки на соседние ячейки
  for(x=1;x<MaxA-1;x++)
@@ -315,6 +269,15 @@ void print_all(long i) {
  print_surf_z(1.0,"surf-z1",i);
  print_surf_z(2.0,"surf-z2",i);
  print_surf_z(3.0,"surf-z3",i);
+}
+
+int ReadConf(char *Name) {
+    char fname[4096];
+    
+//Dimension: 20:20:20
+//Vertical-Tube: 4,5,10
+//Isolation: 3.5:3.7 3.5:16.5 0:2 0.5
+
 }
 
 int main(int argc, char *argv[])
