@@ -10,7 +10,7 @@
 #define MaxB 200
 #define MaxC 200
 
-FILE *in,*out,*fstat;
+FILE *in,*out,*outc,*fstat;
 
 double CG=1520000.0, CV=1339.0, TEI=42500.0; // теплоемкость J/(K*M^3)
 //double CG=800.0, CV=1030.0, TEI=1700.0; // теплоемкость J/(K*kG) грунта, воздуха, изоляции
@@ -87,10 +87,16 @@ double TemperatureYear(double t) { return (-3.1+17.2*sin(2*pi*t/8766-pi/2))+(5+5
 double CollectorPower(double t) { // J*m^-2*hour
     double R,Pl,P;
     R=SolarPower(t);
-    Pl=3600*3.1*(20-TemperatureYear(t));
+    Pl=3600*3.1*(15-TemperatureYear(t));
     P=0;
     if(Pl<R) P=R-Pl;
     return P;
+}
+
+double ThermalLoad(double t) { // J*hour
+    double Pl;
+    Pl=3600*167*(TemperatureYear(t)-20);
+    if(Pl<0) return Pl; else return 0;
 }
 
 int init_mT() {
@@ -119,10 +125,11 @@ int init_mT() {
  }
 
 // трубы
-// for(i=0;i<NTube;i++) {
-//    x=mTube[i].x;z=mTube[i].z;
+ for(i=0;i<NTube;i++) {
+    x=mTube[i].x;z=mTube[i].z;
+    for(y=0; y<MaxB; y++) { m[x][y][z]->TPV=TPV; m[x][y][z]->Cp=CG; }
 //    for(y=0; y<MaxB; y++) { m[x][y][z]->TPV=TPV; m[x][y][z]->Cp=CG; m[x][y][z]->T=TG0; m[x][y][z]->T0=TG0; }
-// }
+ }
 
 // ссылки на соседние ячейки
  for(x=1;x<MaxA-1;x++)
@@ -170,30 +177,34 @@ int eval() {
    for(z=1;z<MaxC-1;z++) {m[x][y][z]->T += m[x][y][z]->dT; /*if(x==50 && y==50 && z==50) printf("*** T=%f dT=%f\n", m[x][y][z]->T, m[x][y][z]->dT);*/}
 }
 
-double eval_tube(long t) {
+double eval_tube(long d, long h, double *SumQ1, double *SumQ2, double *SumQ) {
  Cell *c;
- long x,y,z,i;
+ long x,y,z,i,t;
  long SumT=0;
- double dQ;
+ double dQ1,dQ2,dT,dTsum=0;
  double k2=1/V0;
 
+ t=d*24+h;
  for(i=0;i<NTube;i++) SumT+=mTube[i].z;
- dQ=CollectorS*CollectorPower(t)/SumT;
+ dQ1=CollectorS*CollectorPower(t); // коллекторы
+ dQ2=ThermalLoad(t); // нагрузка
 
  for(i=0;i<NTube;i++) {
     x=mTube[i].x;y=mTube[i].y;
 //    for(y=MaxB;y>0;y--) m[x][y][z]->T = m[x][y-1][z]->T;
-    for(z=1;z<mTube[i].z;z++) m[x][y][z]->T += dQ*k2/m[x][y][z]->Cp;
+    for(z=1;z<mTube[i].z;z++) { dT = (dQ1+dQ2)*k2/(SumT*m[x][y][z]->Cp); m[x][y][z]->T += dT; dTsum+=dT; }
 //    m[x][0][z]->T = Tx; 
  }
- return dQ*SumT;
+ printf("%ld  %ld  T=%.2f  dT=%.2f  Collector=%e  ThermalLoad=%e\n",d,h,TemperatureYear(t),dTsum/SumT,dQ1,dQ2);
+ *SumQ1+=dQ1; *SumQ2+=dQ2; *SumQ+=dQ1+dQ2;
+ return dQ1+dQ2;
 }
 
 void print_p(double a, double b, double c) {
  long x,y,z;
 
  x=a*10;y=b*10;z=c*10;
- fprintf(out,"\t%.2f; ",m[x][y][z]->T);
+ fprintf(outc,"\t%.2f; ",m[x][y][z]->T);
  printf("\t%.2f ",m[x][y][z]->T);
 }
 
@@ -255,7 +266,7 @@ double eval_q() {
  return Qs;
 }
 
-void print_all(long i, double CollectorQ) {
+void print_all(long i, double CollectorQ, double ThermalLoad, double dQsum) {
  long j;
 
  printf("%3ld \t%.3f ",i,Q/1.0e9);
@@ -267,13 +278,22 @@ void print_all(long i, double CollectorQ) {
  printf("\t%.3f ",CollectorQ/86400.0);
  fprintf(out,"\t%.3f; ",CollectorQ/86400.0);
 
+ printf("\t%.3f ",ThermalLoad/86400.0);
+ fprintf(out,"\t%.3f; ",ThermalLoad/86400.0);
+
+ printf("\t%.3f ",dQsum/86400.0);
+ fprintf(out,"\t%.3f; ",dQsum/86400.0);
+
  Qp=Q;
 
+ fprintf(outc,"%3ld; ",i);
  for(j=0; j<Nc; j++) print_p(mc[j].x, mc[j].y, mc[j].z);
 
  printf("\n");
  fprintf(out,"\n");
+ fprintf(outc,"\n");
  fflush(out);
+ fflush(outc);
 
  print_surf_y(1.0,"surf-y1",i);
  print_surf_y(5.0,"surf-y5",i);
@@ -296,7 +316,7 @@ int ReadConf(char *Name) {
 int main(int argc, char *argv[])
 {
  long i,j,d,n;
- double CollectorQ,CQ;
+ double SumQ,SumQ1,SumQ2;
  double Q1=0.0;
  double Q2=0.0;
  double Q3=0.0;
@@ -345,6 +365,7 @@ int main(int argc, char *argv[])
     if(strcmp(argv[i],"-CollectorS")==0) {CollectorS=atof(argv[i+1]);i++;continue;}
     if(strcmp(argv[i],"-i")==0) {in=fopen(argv[i+1],"r");i++;continue;}
     if(strcmp(argv[i],"-o")==0) {out=fopen(argv[i+1],"w");i++;continue;}
+    if(strcmp(argv[i],"-oc")==0) {outc=fopen(argv[i+1],"w");i++;continue;}
 //   if(strcmp(argv[i],"-l")==0) {log=fopen(argv[i+1],"w");i++;continue;}
   }
 
@@ -354,16 +375,14 @@ int main(int argc, char *argv[])
 
  init_mT();Qp=0.0;
 
- for(d=90;d<730;d++) { // two year
-    CollectorQ=0;
+ for(d=90;d<1945;d++) { // 5 year
+    SumQ1=0;SumQ2=0;SumQ=0;
     for(i=0;i<24;i++) { // hour
 	for(j=0;j<15;j++) eval();
-	CQ=eval_tube(d*24+i);
-	CollectorQ+=CQ;
-	printf("%ld %ld %f\n",d,i,CQ);
+	eval_tube(d,i,&SumQ1,&SumQ2,&SumQ);
     }
     eval_q();
-    print_all(d,CollectorQ);
+    print_all(d,SumQ1,SumQ2,SumQ);
   }
 
 // save_all("all-mt.csv");
@@ -382,4 +401,5 @@ int main(int argc, char *argv[])
 */
  fclose(in);
  fclose(out);
+ fclose(outc);
 }

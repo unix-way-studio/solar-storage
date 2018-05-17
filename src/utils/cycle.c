@@ -16,5 +16,5 @@ int main() {
 	SumP+=P; SumR+=R;
 	printf("%6.0f %e %e %5.2f\n", t, R, P, T );
     }
- fprintf(stderr,"w=%f\n",SumP/SumR);
+ fprintf(stderr,"Solar=%f  Collector=%f  w=%f\n", SumR, SumP, SumP/SumR);
 }

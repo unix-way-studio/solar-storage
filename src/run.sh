@@ -5,7 +5,7 @@ rm trace/*.csv
 rm trace/*.png
 h=10
 
-./solar-storage -o vta2.csv -tpi 0.01 -CollectorS 40 \
+./solar-storage -o log.csv -oc clog.csv -tpi 0.01 -CollectorS 40 \
 -t 4,5,$h -t 4,7.5,$h -t 4,10,$h \
 -t 4,12.5,$h -t 4,15,$h -t 16,5,$h -t 16,7.5,$h \
 -t 16,10,$h -t 16,12.5,$h -t 16,15,$h -t 5,4,$h -t 7.5,4,$h \
