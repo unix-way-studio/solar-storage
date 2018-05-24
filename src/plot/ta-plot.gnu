@@ -66,8 +66,8 @@ set grid
 set origin 0.01,0.0
 set title "Q" 
 set ylabel "Q, GJ (Q, kW/h /1000)" font "Helvetica-Bold,12"
-plot "vta2.csv" using 1:2 with lines linestyle 1 ti "Q, GJ", \
- "vta2.csv" using 1:($2*0.278) with lines linestyle 2 ti "Q, kW/h /1000"
+plot "log.csv" using 1:2 with lines linestyle 1 ti "Q, GJ", \
+ "log.csv" using 1:($2*0.278) with lines linestyle 2 ti "Q, kW/h /1000"
 
 set origin 0.34,0.0
 set title "P" 

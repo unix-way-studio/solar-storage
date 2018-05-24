@@ -48,8 +48,8 @@ set title "y=5"
 splot "surf-y5.csv" matrix with image
 
 set origin 0.66,0.5
-set title "y=9" 
-splot "surf-y9.csv" matrix with image
+set title "y=10" 
+splot "surf-y10.csv" matrix with image
 
 unset multiplot
 

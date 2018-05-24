@@ -29,8 +29,7 @@ double CollectorS=40; // площадь коллектора
 double Q; // запасено в системе тепла
 double Qp=0.0; // предидущее количество тепла
 
-typedef struct
- {
+typedef struct {
   double T0; // начальная температура
   double T;  // текущая температура
   double dT; // изменение температуры
@@ -52,22 +51,20 @@ typedef struct
 
 Cell *m[MaxA][MaxB][MaxC];
 
-typedef struct
- {
-  double x;  // X координата трубы
-  double y;  // Y координата трубы
-  double z;  // глубина трубы
+typedef struct {
+  double x1,x2,dx;  // X координата трубы
+  double y1,y2,dy;  // Y координата трубы
+  double z1,z2,dz;  // Z координата трубы
+  double L;      // Length of tube
  } Tube;
 
-typedef struct
- {
+typedef struct {
   double x;
   double y;
   double z;
  } Point;
 
-typedef struct
- {
+typedef struct {
   double x1,x2;
   double y1,y2;
   double z1,z2;
@@ -100,7 +97,7 @@ double ThermalLoad(double t) { // J*hour
 }
 
 int init_mT() {
- int x,y,z,i;
+ long x,y,z,i,k;
  double TPV;
  Cell *c;
 
@@ -126,8 +123,16 @@ int init_mT() {
 
 // трубы
  for(i=0;i<NTube;i++) {
-    x=mTube[i].x;z=mTube[i].z;
-    for(y=0; y<MaxB; y++) { m[x][y][z]->TPV=TPV; m[x][y][z]->Cp=CG; }
+    printf("\n *** tube %ld ",i);
+    for(k=0;k<mTube[i].L;k++) {
+	x=mTube[i].x1 + k*mTube[i].dx/mTube[i].L;
+	y=mTube[i].y1 + k*mTube[i].dy/mTube[i].L;
+	z=mTube[i].z1 + k*mTube[i].dz/mTube[i].L;
+	printf("(%ld %ld %ld) ",x,y,z);
+	m[x][y][z]->TPV=TPV; 
+	m[x][y][z]->Cp=CG*4;
+    }
+    printf(" *** \n");
 //    for(y=0; y<MaxB; y++) { m[x][y][z]->TPV=TPV; m[x][y][z]->Cp=CG; m[x][y][z]->T=TG0; m[x][y][z]->T0=TG0; }
  }
 
@@ -179,20 +184,26 @@ int eval() {
 
 double eval_tube(long d, long h, double *SumQ1, double *SumQ2, double *SumQ) {
  Cell *c;
- long x,y,z,i,t;
+ long x,y,z,i,t,k;
  long SumT=0;
  double dQ1,dQ2,dT,dTsum=0;
  double k2=1/V0;
 
  t=d*24+h;
- for(i=0;i<NTube;i++) SumT+=mTube[i].z;
+ for(i=0;i<NTube;i++) SumT+=mTube[i].L;
  dQ1=CollectorS*CollectorPower(t); // коллекторы
  dQ2=ThermalLoad(t); // нагрузка
 
  for(i=0;i<NTube;i++) {
-    x=mTube[i].x;y=mTube[i].y;
 //    for(y=MaxB;y>0;y--) m[x][y][z]->T = m[x][y-1][z]->T;
-    for(z=1;z<mTube[i].z;z++) { dT = (dQ1+dQ2)*k2/(SumT*m[x][y][z]->Cp); m[x][y][z]->T += dT; dTsum+=dT; }
+    for(k=0;k<mTube[i].L;k++) {
+	x=mTube[i].x1 + k*mTube[i].dx/mTube[i].L;
+	y=mTube[i].y1 + k*mTube[i].dy/mTube[i].L;
+	z=mTube[i].z1 + k*mTube[i].dz/mTube[i].L;
+	dT = (dQ1+dQ2)*k2/(SumT*m[x][y][z]->Cp);
+	m[x][y][z]->T += dT;
+	dTsum+=dT;
+    }
 //    m[x][0][z]->T = Tx; 
  }
  printf("%ld  %ld  T=%.2f  dT=%.2f  Collector=%e  ThermalLoad=%e\n",d,h,TemperatureYear(t),dTsum/SumT,dQ1,dQ2);
@@ -266,7 +277,7 @@ double eval_q() {
  return Qs;
 }
 
-void print_all(long i, double CollectorQ, double ThermalLoad, double dQsum) {
+void print_stat(long i, double CollectorQ, double ThermalLoad, double dQsum) {
  long j;
 
  printf("%3ld \t%.3f ",i,Q/1.0e9);
@@ -284,20 +295,26 @@ void print_all(long i, double CollectorQ, double ThermalLoad, double dQsum) {
  printf("\t%.3f ",dQsum/86400.0);
  fprintf(out,"\t%.3f; ",dQsum/86400.0);
 
+ printf("\n");
+ fprintf(out,"\n");
+ fflush(out);
+
  Qp=Q;
+}
+
+void print_control(long i) {
+ long j;
 
  fprintf(outc,"%3ld; ",i);
  for(j=0; j<Nc; j++) print_p(mc[j].x, mc[j].y, mc[j].z);
 
  printf("\n");
- fprintf(out,"\n");
  fprintf(outc,"\n");
- fflush(out);
  fflush(outc);
 
  print_surf_y(1.0,"surf-y1",i);
  print_surf_y(5.0,"surf-y5",i);
- print_surf_y(9.0,"surf-y9",i);
+ print_surf_y(10.0,"surf-y10",i);
 
  print_surf_z(1.0,"surf-z1",i);
  print_surf_z(2.0,"surf-z2",i);
@@ -322,22 +339,29 @@ int main(int argc, char *argv[])
  double Q3=0.0;
  double Q4=0.0;
  double Q5=0.0;
- float tx,ty,tz,tx2,ty2,tz2,tp;
+ float tx,ty,tz,tx1,ty1,tz1,tx2,ty2,tz2,tp;
 
  out=stdout;in=stdin;
  NTube=0;Nc=0;
  for(i=1;i<argc;i++) {
     if(strcmp(argv[i],"-n")==0) {n=atol(argv[i+1]);i++;continue;}
-    if(strcmp(argv[i],"-t")==0) {
-	sscanf(argv[i+1],"%f,%f,%f",&tx,&ty,&tz); 
-	mTube[NTube].x=tx*10.0;
-	mTube[NTube].y=ty*10.0;
-	mTube[NTube].z=tz*10.0;
+    if(strcmp(argv[i],"-t")==0) { // Tubes
+	sscanf(argv[i+1],"%f,%f,%f,%f,%f,%f",&tx1,&ty1,&tz1,&tx2,&ty2,&tz2);
+	mTube[NTube].x1=tx1*10.0;
+	mTube[NTube].y1=ty1*10.0;
+	mTube[NTube].z1=tz1*10.0;
+	mTube[NTube].x2=tx2*10.0;
+	mTube[NTube].y2=ty2*10.0;
+	mTube[NTube].z2=tz2*10.0;
+	mTube[NTube].dx=(tx2-tx1)*10.0;
+	mTube[NTube].dy=(ty2-ty1)*10.0;
+	mTube[NTube].dz=(tz2-tz1)*10.0;
+	mTube[NTube].L=10*sqrt(pow(tx2-tx1,2)+pow(ty2-ty1,2)+pow(tz2-tz1,2));
 	NTube++;
 	i++;
 	continue;
-    } // трубы
-    if(strcmp(argv[i],"-c")==0) {
+    } 
+    if(strcmp(argv[i],"-c")==0) {  // Control points
 	sscanf(argv[i+1],"%f,%f,%f",&tx,&ty,&tz);
 	mc[Nc].x=tx;
 	mc[Nc].y=ty;
@@ -345,8 +369,8 @@ int main(int argc, char *argv[])
 	Nc++;
 	i++;
 	continue;
-    } // контрольные точки
-    if(strcmp(argv[i],"-isol")==0) {
+    }
+    if(strcmp(argv[i],"-isol")==0) { // Thermo isol
 	sscanf(argv[i+1],"%f:%f",&tx,&tx2);
 	mIsol[NIsol].x1=tx*10; mIsol[NIsol].x2=tx2*10;
 	sscanf(argv[i+2],"%f:%f",&ty,&ty2);
@@ -359,7 +383,7 @@ int main(int argc, char *argv[])
 	//printf("ni=%d  %f:%f %f:%f %f:%f  %f\n",NIsol, tx,tx2, ty,ty2, tz,tz2, tp);
 	i+=4;
 	continue;
-    } // теплоизоляция
+    }
     if(strcmp(argv[i],"-tpi")==0) {TPI=atof(argv[i+1]);i++;continue;}
     if(strcmp(argv[i],"-tei")==0) {TEI=atof(argv[i+1]);i++;continue;}
     if(strcmp(argv[i],"-CollectorS")==0) {CollectorS=atof(argv[i+1]);i++;continue;}
@@ -369,36 +393,24 @@ int main(int argc, char *argv[])
 //   if(strcmp(argv[i],"-l")==0) {log=fopen(argv[i+1],"w");i++;continue;}
   }
 
- for(i=0;i<NTube;i++) printf("Tube %ld: %f %f %f\n",i+1, mTube[i].x, mTube[i].y, mTube[i].z);
+ for(i=0;i<NTube;i++) printf("Tube %ld: (%f %f %f)-(%f %f %f) L=%f \n",i+1, mTube[i].x1, mTube[i].y1, mTube[i].z1, mTube[i].x2, mTube[i].y2, mTube[i].z2, mTube[i].L);
  for(i=0;i<Nc;i++) printf("Control point %ld: %f %f %f\n",i+1, mc[i].x, mc[i].y, mc[i].z);
  for(i=0;i<NIsol;i++) printf("Isol%ld   %f:%f  %f:%f  %f:%f  %f\n",i+1, mIsol[i].x1,mIsol[i].x2, mIsol[i].y1,mIsol[i].y2, mIsol[i].z1,mIsol[i].z2, mIsol[i].TPV);
 
  init_mT();Qp=0.0;
 
- for(d=90;d<1945;d++) { // 5 year
+ for(d=90;d<(10*365.25+90);d++) { // 10 year
     SumQ1=0;SumQ2=0;SumQ=0;
     for(i=0;i<24;i++) { // hour
 	for(j=0;j<15;j++) eval();
 	eval_tube(d,i,&SumQ1,&SumQ2,&SumQ);
+	if(i==6) print_control(d);
     }
     eval_q();
-    print_all(d,SumQ1,SumQ2,SumQ);
+    print_stat(d,SumQ1,SumQ2,SumQ);
   }
 
 // save_all("all-mt.csv");
-/*
- fstat=fopen("vta2-stat.txt","w");
- fprintf(fstat,"Q1 = %.0f\n",Q1);
- fprintf(fstat,"Q2 = %.0f\n",Q2);
- fprintf(fstat,"Q3 = %.0f\n",Q3);
- fprintf(fstat,"Q4 = %.0f\n",Q4);
- fprintf(fstat,"Q5 = %.0f\n",Q5);
- fprintf(fstat,"Qsr1 = %.0f%%\n",100.0*(Q1-Q2)/Q1);
- fprintf(fstat,"Qw   = %.0f%%\n",100.0*(Q2-Q3)/Q1);
- fprintf(fstat,"Qsr2 = %.0f%%\n",100.0*(Q3-Q4)/Q1);
- fprintf(fstat,"Qost = %.0f%%\n",100.0*Q4/Q1);
- fclose(fstat);
-*/
  fclose(in);
  fclose(out);
  fclose(outc);
